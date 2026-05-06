@@ -1,0 +1,12 @@
+{
+  "addons": {
+    "smart-read-aloud@whipple.local": {
+      "updates": [
+        {
+          "version": "0.10.1",
+          "update_link": "https://github.com/svideria/zotero-smart-read-aloud/releases/download/v0.10.1/SmartReadAloud-0.10.1.xpi"
+        }
+      ]
+    }
+  }
+}
