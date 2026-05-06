@@ -308,9 +308,11 @@ var ZRA = {
 
   rebuildCombined() {
     const useSum = document.getElementById("zra-ai-summary").checked;
+    const useLab = document.getElementById("zra-lab-brief").checked;
     const blocks = this.papers.map((p, i) => {
       const isLast = (i === this.papers.length - 1);
       const intro = (this.papers.length > 1 ? ("Paper " + (i + 1) + " of " + this.papers.length + ": " + p.title + (p.meta ? ", " + p.meta : "") + ".\n\n") : "");
+      const labLine = (useLab && p.labBrief) ? ("About the lab. " + p.labBrief + "\n\n") : "";
       let body;
       if (p.skim && p.summary) {
         body = "Summary. " + p.summary;
@@ -319,10 +321,41 @@ var ZRA = {
         if (useSum && p.summary) body += "\n\nSummary. " + p.summary;
       }
       const transition = isLast ? "\n\nReading complete." : "\n\nMoving on to the next paper.";
-      return intro + body + transition;
+      return intro + labLine + body + transition;
     });
     this.combinedText = blocks.join("\n\n");
     document.getElementById("zra-text").textContent = this.combinedText;
+  },
+
+  async generateLabBriefsIfRequested() {
+    if (!document.getElementById("zra-lab-brief").checked) return;
+    const Z = this.Zotero;
+    const key = Z.Prefs.get("extensions.zra.apiKey", true) || Z.Prefs.get("extensions.zss.apiKey", true);
+    if (!key) {
+      this.setStatus("Lab brief on but no Anthropic key found.", "warn");
+      return;
+    }
+    for (let i = 0; i < this.papers.length; i++) {
+      if (this.piperStopFlag) return;
+      const p = this.papers[i];
+      if (p.labBrief) continue;
+      this.setStatus("Researching lab " + (i + 1) + "/" + this.papers.length + " (Haiku)…");
+      try {
+        const prompt = "Identify the corresponding author of this scientific paper (usually the last-listed or starred author) and write 2-3 sentences about their lab: research focus, career stage (early-career / established / leading), and notable contributions or impact. Be concrete and mention specific work if you know it. If you don't have reliable information, say so honestly rather than guessing. Output only the synopsis, no preamble.\n\nTitle: " + p.title + "\nAuthors: " + p.meta + "\n\nExcerpt:\n" + (p.cleanText || "").slice(0, 4000);
+        const resp = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+          body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 400, messages: [{ role: "user", content: prompt }] })
+        });
+        if (!resp.ok) { p.labBrief = ""; continue; }
+        const data = await resp.json();
+        const text = (data.content && data.content[0] && data.content[0].text) || "";
+        p.labBrief = text.trim();
+      } catch (e) {
+        p.labBrief = "";
+      }
+    }
+    this.rebuildCombined();
   },
 
   async generateSummariesIfRequested() {
@@ -532,7 +565,9 @@ var ZRA = {
     await new Promise((r) => setTimeout(r, 30));
     this.piperStopFlag = false;
 
-    // Generate AI summaries before chunking if requested
+    // Generate AI summaries / lab briefs before chunking if requested
+    await this.generateLabBriefsIfRequested();
+    if (this.piperStopFlag) return;
     await this.generateSummariesIfRequested();
     if (this.piperStopFlag) return;
 
