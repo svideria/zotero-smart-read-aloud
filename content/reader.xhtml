@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Smart Read Aloud</title>
+  <link rel="stylesheet" href="reader.css" type="text/css"/>
+  <script src="reader.js"></script>
+</head>
+<body onload="ZRA.init();">
+  <div id="zra-root">
+    <header id="zra-header">
+      <div id="zra-title" class="title">No item loaded</div>
+      <div id="zra-meta" class="meta"></div>
+    </header>
+
+    <div id="zra-queue" class="queue hidden"></div>
+
+    <section class="card">
+      <div class="row voice-row">
+        <label>Voice</label>
+        <select id="zra-voice" size="4"></select>
+        <button id="zra-add-voice" class="ghost mini" title="Download another Piper voice">+</button>
+      </div>
+      <div class="row">
+        <label>Speed <span id="zra-rate-display">1.00×</span></label>
+        <input id="zra-rate" type="range" min="0.5" max="2" step="0.05" value="1"/>
+      </div>
+      <div class="row checks">
+        <label><input type="checkbox" id="zra-skip-refs" checked="checked"/> References / endmatter</label>
+        <label><input type="checkbox" id="zra-skip-captions" checked="checked"/> Captions</label>
+        <label><input type="checkbox" id="zra-skip-meta" checked="checked"/> DOIs / metadata</label>
+        <label><input type="checkbox" id="zra-skip-authors" checked="checked"/> Author names</label>
+        <label><input type="checkbox" id="zra-skip-figrefs" checked="checked"/> Figure refs</label>
+      </div>
+      <div class="row checks">
+        <label><input type="checkbox" id="zra-ai-summary"/> AI summary at end of each paper (~$0.01/paper, Claude Haiku)</label>
+        <label><input type="checkbox" id="zra-unlistened-only"/> Unlistened only (filter on Reload)</label>
+      </div>
+    </section>
+
+    <section class="player">
+      <div id="zra-controls">
+        <button id="zra-play" class="primary">▶ Play</button>
+        <button id="zra-pause">⏸</button>
+        <button id="zra-stop">⏹</button>
+        <button id="zra-reload" class="ghost">⟳ Reload selection</button>
+      </div>
+      <div id="zra-controls-2">
+        <button id="zra-back15" title="Back 15 seconds">⏪ 15s</button>
+        <button id="zra-fwd15" title="Forward 15 seconds">15s ⏩</button>
+        <button id="zra-section-prev" title="Previous section">⏮ Section</button>
+        <button id="zra-section-next" title="Next section">Section ⏭</button>
+        <button id="zra-skip-paper" title="Skip to next paper in queue">⏭⏭ Paper</button>
+        <button id="zra-open-pdf" title="Open this paper's PDF in Zotero reader">📖 PDF</button>
+        <button id="zra-mark" title="Add a note to this paper at the current spot (M key)">📌 Mark (M)</button>
+      </div>
+      <div class="progress-row">
+        <progress id="zra-progress" max="1" value="0"></progress>
+        <span id="zra-time-left">—</span>
+      </div>
+      <audio id="zra-audio" preload="auto"></audio>
+      <div id="zra-status" class="hint">Select an item in Zotero, then click Reload selection.</div>
+    </section>
+
+    <details id="zra-text-wrap">
+      <summary>Cleaned text preview</summary>
+      <div id="zra-text" class="text-pane"></div>
+    </details>
+  </div>
+</body>
+</html>

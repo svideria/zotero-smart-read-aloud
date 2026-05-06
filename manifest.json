@@ -1,0 +1,15 @@
+{
+  "manifest_version": 2,
+  "name": "Smart Read Aloud",
+  "version": "0.10.0",
+  "description": "Read scientific papers aloud, skipping DOIs, references, captions, and other clutter.",
+  "author": "Sebastian Whipple",
+  "applications": {
+    "zotero": {
+      "id": "smart-read-aloud@whipple.local",
+      "update_url": "https://example.invalid/updates.json",
+      "strict_min_version": "6.999",
+      "strict_max_version": "9.*"
+    }
+  }
+}
