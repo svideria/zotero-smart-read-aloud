@@ -201,6 +201,17 @@ var ZRA = {
           const t = await IOUtils.readUTF8(cachePath);
           if (t && t.length > 100) { text = t; break; }
         }
+        // On-demand indexing if cache missing
+        try {
+          if (Z.FullText && Z.FullText.indexItems) {
+            this.setStatus("Indexing PDF on demand: " + (item.getField("title") || "").slice(0, 60) + "…");
+            await Z.FullText.indexItems([aid]);
+            if (await IOUtils.exists(cachePath)) {
+              const t = await IOUtils.readUTF8(cachePath);
+              if (t && t.length > 100) { text = t; break; }
+            }
+          }
+        } catch (e) { Z.debug("[ZRA] on-demand index failed for " + aid + ": " + e); }
       }
       if (!text) continue;
 
