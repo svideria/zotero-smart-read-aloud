@@ -595,7 +595,75 @@ var ZRA = {
     }
     t = t.replace(/(\w+)-\n(\w+)/g, "$1$2");
     t = t.replace(/([^\n])\n([^\n])/g, "$1 $2");
-    return t.replace(/\n{3,}/g, "\n\n").replace(/[ \t]{2,}/g, " ").trim();
+    t = t.replace(/\n{3,}/g, "\n\n").replace(/[ \t]{2,}/g, " ").trim();
+
+    // Strip superscript-style citation numbers glued to words ("reactions1−4", "Smith et al.5")
+    if (document.getElementById("zra-skip-cites") && document.getElementById("zra-skip-cites").checked) {
+      // word ending lowercase + glued digits with optional comma/dash groups
+      t = t.replace(/([a-z\)\]])(\d{1,3}(?:[,−–\-]\d{1,3}){0,5})(?=[\s.,;:!?\)\]]|$)/g, "$1");
+      // Also strip standalone " 1,2,3 " or " 1−4 " (rare but possible)
+      t = t.replace(/\s\d{1,3}(?:[,−–\-]\d{1,3}){1,5}(?=[\s.,;:!?\)\]])/g, " ");
+    }
+
+    // Chemistry pronunciation pass (last so previous filters don't fight it)
+    if (document.getElementById("zra-chem-aware") && document.getElementById("zra-chem-aware").checked) {
+      t = this.chemPreprocess(t);
+    }
+    return t;
+  },
+
+  chemPreprocess(t) {
+    const subs = [
+      [/\bd\.r\.?(?=\s|$)/gi, "d r"],
+      [/\be\.e\.?(?=\s|$)/gi, "e e"],
+      [/\be\.r\.?(?=\s|$)/gi, "e r"],
+      [/\bIC50\b/g, "I C fifty"],
+      [/\bEC50\b/g, "E C fifty"],
+      [/\bLD50\b/g, "L D fifty"],
+      [/\bGI50\b/g, "G I fifty"],
+      [/\bpKa\b/g, "p K a"],
+      [/\bpKi\b/g, "p K i"],
+      [/\bKM\b/g, "K M"],
+      [/\bKm\b/g, "K m"],
+      [/\bKi\b/g, "K i"],
+      [/\bkcat\b/gi, "k cat"],
+      [/\bVmax\b/gi, "V max"],
+      [/\bmol\s*%/g, "mole percent"],
+      [/\bv\/v\b/gi, "volume per volume"],
+      [/\bw\/w\b/gi, "weight per weight"],
+      [/\bw\/v\b/gi, "weight per volume"],
+      [/\bN\.M\.R\.?\b/gi, "N M R"],
+      [/\bNMR\b/g, "N M R"],
+      [/\bHPLC\b/g, "H P L C"],
+      [/\bUPLC\b/g, "U P L C"],
+      [/\bLC[\/\-]?MS\b/gi, "L C M S"],
+      [/\bGC[\/\-]?MS\b/gi, "G C M S"],
+      [/\bMALDI\b/g, "MAL-dee"],
+      [/\bDFT\b/g, "D F T"],
+      [/\bSAR\b/g, "S A R"],
+      [/\bSMILES\b/gi, "smiles"],
+      [/\bDOI\b/g, "D O I"],
+      [/\bPDB\b/g, "P D B"],
+      [/\bRDKit\b/gi, "R D Kit"],
+      [/\bSFC\b/g, "S F C"],
+      [/\bPAINS\b/g, "pains"],
+      [/\bADMET\b/gi, "AD-met"],
+      [/\bee\b(?=\s|$)/g, "e e"],
+      [/\bdr\b(?=\s|$)/g, "d r"],
+      [/\bt1\/2\b/gi, "t one half"]
+    ];
+    for (const [re, rep] of subs) t = t.replace(re, rep);
+
+    // Chemical formulas: NiCl3 → Ni Cl 3, H2SO4 → H 2 S O 4
+    // Token must look like ([A-Z][a-z]?\d*){2+} and contain at least one digit
+    t = t.replace(/\b([A-Z][a-z]?\d*){2,}\b/g, (match) => {
+      if (!/\d/.test(match)) return match;
+      // Avoid mangling typical acronyms like "ATP", "GTP", "PEG" (no digits already filtered)
+      // Insert space around each element symbol and each digit run
+      return match.replace(/([A-Z][a-z]?)/g, " $1").replace(/(\d+)/g, " $1").replace(/\s+/g, " ").trim();
+    });
+
+    return t;
   },
 
   chunkForStreaming(text) {
