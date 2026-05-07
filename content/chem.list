@@ -9,25 +9,43 @@
 # client-side. New terms added here should also be considered for the regex
 # table in chemPreprocess() until espeak takes over.
 #
-# ─── ESPEAK-NG COMPILER (step 2 findings, plugin v0.14.3) ─────────────
+# ─── ESPEAK-NG COMPILER (step 2, plugin v0.14.3) ──────────────────────
 #
 # Latest release: 1.52.0  (https://github.com/espeak-ng/espeak-ng)
 # Windows asset: espeak-ng.msi
 #   https://github.com/espeak-ng/espeak-ng/releases/download/1.52.0/espeak-ng.msi
 #
-# Caveat: only an MSI installer is shipped, no portable zip. Two paths:
-#   (a) Run installer once on dev machine, then `espeak-ng --compile=en`
-#       inside a dir containing the upstream en `dictsource/` files plus
-#       this chem.list appended. Output: en_dict (binary).
-#   (b) For per-user plugin install: extract MSI with `msiexec /a … /qb
-#       TARGETDIR=…` to get the espeak-ng binaries portably, OR use
-#       lessmsi/7-zip to extract.
+# Only an MSI installer ships (no portable zip). Either install it on the
+# dev machine, or extract with `msiexec /a … /qb TARGETDIR=…` for a portable
+# layout. Recommended plugin path: precompile a supplemental dict on a dev
+# machine and bake the binary into the XPI — no runtime compile.
 #
-# Recommended approach for the plugin: precompile a supplemental dict on a
-# dev machine, bake the resulting binary into the XPI, copy it into Piper's
-# espeak-ng-data dir at install time. No runtime compilation needed.
+# ─── COMPILE FLOW (step 3, plugin v0.14.4) ────────────────────────────
 #
-# Upstream en dictsource (needed alongside chem.list during compile):
+# espeak-ng's en dictionary is built from these source files (all UTF-8):
+#   en_list   — word→phonemes lookups (5794 lines upstream)
+#   en_rules  — phoneme rule patterns
+#   en_emoji  — emoji descriptions
+# Source location: https://github.com/espeak-ng/espeak-ng/tree/master/dictsource
+#
+# Convention: do NOT modify en_list. Create a SIBLING file `en_extra` in
+# the same dictsource/ directory with our additions. The compiler picks
+# it up automatically. (en_list itself documents this on lines 1-2.)
+#
+# Format inside en_extra is identical to en_list:
+#   word        phonemes        flags
+# OR a `.replace` block (which we use in chem.list — text→text rewrites
+# that get re-phonemized by the rules engine).
+#
+# Compile invocation, run from the dir containing en_list / en_extra etc.:
+#   espeak-ng --path=<dictsource-parent> --compile=en
+# Output: en_dict (binary) inside espeak-ng-data/.
+#
+# Next slices: (a) script the compile end-to-end on dev box, (b) inspect
+# Piper's bundled espeak-ng-data layout to confirm the en_dict drop point,
+# (c) run an A/B test ("IC50" before vs after).
+#
+# Upstream en dictsource (needed at compile time):
 #   https://github.com/espeak-ng/espeak-ng/tree/master/dictsource
 
 .replace
