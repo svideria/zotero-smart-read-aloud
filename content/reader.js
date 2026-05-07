@@ -368,6 +368,7 @@ var ZRA = {
     let totalRaw = 0, totalClean = 0;
     for (const p of this.papers) {
       p.cleanText = this.filterText(p.rawText);
+      this.applyFiltersAllPostProcess(p);
       // Invalidate any cached summary since text changed
       if (p._summarySource !== p.cleanText) { p.summary = undefined; p._summarySource = p.cleanText; }
       totalRaw += p.rawText.length;
@@ -397,6 +398,54 @@ var ZRA = {
     });
     this.combinedText = blocks.join("\n\n");
     document.getElementById("zra-text").textContent = this.combinedText;
+  },
+
+  async generateChemSubsIfRequested() {
+    if (!document.getElementById("zra-chem-ai").checked) return;
+    const Z = this.Zotero;
+    const key = Z.Prefs.get("extensions.zra.apiKey", true) || Z.Prefs.get("extensions.zss.apiKey", true);
+    if (!key) { this.setStatus("AI chem on but no Anthropic key.", "warn"); return; }
+    for (let i = 0; i < this.papers.length; i++) {
+      if (this.piperStopFlag) return;
+      const p = this.papers[i];
+      if (p.chemSubs) continue;
+      this.setStatus("Extracting chem terms from paper " + (i + 1) + "/" + this.papers.length + " (Haiku)…");
+      try {
+        const prompt = "Identify every chemistry, biology, biochemistry, or pharmacology abbreviation, acronym, or chemical formula in the text below that a text-to-speech engine would mispronounce. For each, provide a phonetic expansion suitable for TTS (spell out letters individually if appropriate, or use phonetic spelling).\n\nOutput ONLY valid JSON, no preamble. Format:\n{\"subs\": [{\"term\": \"<exact original token>\", \"expansion\": \"<TTS-friendly text>\"}]}\n\nExamples of good entries:\n- {\"term\": \"d.r.\", \"expansion\": \"d r\"}\n- {\"term\": \"NiCl3\", \"expansion\": \"Ni Cl 3\"}\n- {\"term\": \"IC50\", \"expansion\": \"I C fifty\"}\n- {\"term\": \"MALDI\", \"expansion\": \"MAL-dee\"}\n\nSkip common English words, numbers, and items already pronounceable. Focus on technical terms.\n\nText:\n" + (p.cleanText || "").slice(0, 9000);
+        const resp = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+          body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 2500, messages: [{ role: "user", content: prompt }] })
+        });
+        if (!resp.ok) { p.chemSubs = {}; continue; }
+        const data = await resp.json();
+        const txt = (data.content && data.content[0] && data.content[0].text) || "";
+        const m = txt.match(/\{[\s\S]*\}/);
+        if (!m) { p.chemSubs = {}; continue; }
+        const parsed = JSON.parse(m[0]);
+        const subs = {};
+        for (const e of (parsed.subs || [])) {
+          if (e.term && e.expansion && e.term !== e.expansion) subs[e.term] = e.expansion;
+        }
+        p.chemSubs = subs;
+      } catch (e) {
+        p.chemSubs = {};
+      }
+    }
+    // Re-apply filters now that we have subs
+    this.applyFiltersAll();
+  },
+
+  applyChemSubs(text, subs) {
+    if (!subs || !Object.keys(subs).length) return text;
+    const keys = Object.keys(subs).sort((a, b) => b.length - a.length);
+    for (const k of keys) {
+      const escaped = k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      // Word-boundary if term is alphanumeric, otherwise use literal
+      const re = /^\w+$/.test(k) ? new RegExp("\\b" + escaped + "\\b", "g") : new RegExp(escaped, "g");
+      text = text.replace(re, subs[k]);
+    }
+    return text;
   },
 
   async generateLabBriefsIfRequested() {
@@ -605,11 +654,16 @@ var ZRA = {
       t = t.replace(/\s\d{1,3}(?:[,−–\-]\d{1,3}){1,5}(?=[\s.,;:!?\)\]])/g, " ");
     }
 
-    // Chemistry pronunciation pass (last so previous filters don't fight it)
+    // Chemistry pronunciation pass (regex)
     if (document.getElementById("zra-chem-aware") && document.getElementById("zra-chem-aware").checked) {
       t = this.chemPreprocess(t);
     }
     return t;
+  },
+
+  applyFiltersAllPostProcess(p) {
+    // Apply per-paper AI chem subs after the regex filter pass
+    if (p.chemSubs) p.cleanText = this.applyChemSubs(p.cleanText, p.chemSubs);
   },
 
   chemPreprocess(t) {
@@ -705,8 +759,10 @@ var ZRA = {
     await new Promise((r) => setTimeout(r, 30));
     this.piperStopFlag = false;
 
-    // Generate AI summaries / lab briefs before chunking if requested
+    // Generate AI summaries / lab briefs / chem subs before chunking if requested
     await this.generateLabBriefsIfRequested();
+    if (this.piperStopFlag) return;
+    await this.generateChemSubsIfRequested();
     if (this.piperStopFlag) return;
     await this.generateSummariesIfRequested();
     if (this.piperStopFlag) return;
