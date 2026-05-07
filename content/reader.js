@@ -206,10 +206,16 @@ var ZRA = {
           if (Z.FullText && Z.FullText.indexItems) {
             this.setStatus("Indexing PDF on demand: " + (item.getField("title") || "").slice(0, 60) + "…");
             await Z.FullText.indexItems([aid]);
-            if (await IOUtils.exists(cachePath)) {
-              const t = await IOUtils.readUTF8(cachePath);
-              if (t && t.length > 100) { text = t; break; }
+            // indexItems may return before extraction finishes; poll up to 60s
+            for (let s = 0; s < 60; s++) {
+              if (await IOUtils.exists(cachePath)) {
+                const t2 = await IOUtils.readUTF8(cachePath);
+                if (t2 && t2.length > 100) { text = t2; break; }
+              }
+              await new Promise((r) => setTimeout(r, 1000));
+              if (s % 5 === 4) this.setStatus("Indexing PDF (" + (s + 1) + "s)…");
             }
+            if (text) break;
           }
         } catch (e) { Z.debug("[ZRA] on-demand index failed for " + aid + ": " + e); }
       }
