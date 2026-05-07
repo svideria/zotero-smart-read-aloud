@@ -1,13 +1,21 @@
 # espeak-ng dictionary source for chemistry/biology pronunciation
 #
-# Format: each non-comment line is a `.replace` directive that rewrites
-# the source token to a TTS-friendly form, which espeak-ng then phonemizes
-# normally.
+# AS OF v0.15.0 THIS FILE IS LIVE: entries below are compiled into a custom
+# en_dict (~170 KB) at content/en_dict.chem. The plugin drops it into
+# Piper's espeak-ng-data/ on dialog open. Engine-level pronunciation.
 #
-# This file is the source-of-truth for plugin v0.14.1+. Until compiled and
-# wired into Piper, the regex + AI passes in reader.js handle expansion
-# client-side. New terms added here should also be considered for the regex
-# table in chemPreprocess() until espeak takes over.
+# Compile workflow (any Linux box with espeak-ng 1.51+):
+#   1. mkdir build && cd build
+#   2. curl upstream en_list, en_rules, en_emoji into ./
+#   3. Inject these .replace pairs into en_rules' top .replace block
+#      (just before `.group a`)
+#   4. cp espeak-ng-data ./   (full data tree)
+#   5. espeak-ng --path=. --compile=en
+#   6. Output: ./espeak-ng-data/en_dict (binary)
+#
+# Format: lines under `.replace` are `source\ttarget` pairs. Each blank
+# line ends the .replace block, so each section needs `.replace` redeclared.
+# Comments must use `//` (not `#`) inside the en_rules file.
 #
 # ─── ESPEAK-NG COMPILER (step 2, plugin v0.14.3) ──────────────────────
 #

@@ -99,15 +99,20 @@ var ZRA = {
 
   async ensureChemDict() {
     const dictDest = PathUtils.join(this.piperRoot, "piper", "espeak-ng-data", "en_dict");
-    if (!(await IOUtils.exists(dictDest))) return;
+    if (!(await IOUtils.exists(dictDest))) return false;
     const stat = await IOUtils.stat(dictDest);
-    // Our augmented dict is ~169761 bytes; stock is ~166944. Skip if size matches ours.
-    if (stat && stat.size && Math.abs(stat.size - 169761) < 1000) return;
+    // Our augmented dict is ~169761 bytes; stock is ~166944. Skip if already ours.
+    if (stat && stat.size && Math.abs(stat.size - 169761) < 1000) {
+      this._chemDictActive = true;
+      return true;
+    }
     const resp = await fetch("chrome://smart-read-aloud/content/en_dict.chem");
-    if (!resp.ok) return;
+    if (!resp.ok) return false;
     const buf = new Uint8Array(await resp.arrayBuffer());
     await IOUtils.write(dictDest, buf);
+    this._chemDictActive = true;
     Zotero.debug("[ZRA] installed chem-augmented en_dict (" + buf.length + " bytes)");
+    return true;
   },
 
   async runPS(args) {
@@ -261,6 +266,7 @@ var ZRA = {
       const saved = this._savedVoice;
       if (saved && [...sel.options].some((o) => o.value === saved)) sel.value = saved;
       else sel.selectedIndex = 0;
+      if (this._chemDictActive) this.setStatus("Ready. Custom chem dict active in espeak.", "playing");
     }
   },
 
