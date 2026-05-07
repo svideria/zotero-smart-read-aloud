@@ -10,7 +10,8 @@
         { "version": "0.12.1", "update_link": "https://github.com/svideria/zotero-smart-read-aloud/releases/download/v0.12.1/SmartReadAloud-0.12.1.xpi", "applications": { "zotero": { "strict_min_version": "6.999" } } },
         { "version": "0.13.0", "update_link": "https://github.com/svideria/zotero-smart-read-aloud/releases/download/v0.13.0/SmartReadAloud-0.13.0.xpi", "applications": { "zotero": { "strict_min_version": "6.999" } } },
         { "version": "0.14.0", "update_link": "https://github.com/svideria/zotero-smart-read-aloud/releases/download/v0.14.0/SmartReadAloud-0.14.0.xpi", "applications": { "zotero": { "strict_min_version": "6.999" } } },
-        { "version": "0.14.1", "update_link": "https://github.com/svideria/zotero-smart-read-aloud/releases/download/v0.14.1/SmartReadAloud-0.14.1.xpi", "applications": { "zotero": { "strict_min_version": "6.999" } } }
+        { "version": "0.14.1", "update_link": "https://github.com/svideria/zotero-smart-read-aloud/releases/download/v0.14.1/SmartReadAloud-0.14.1.xpi", "applications": { "zotero": { "strict_min_version": "6.999" } } },
+        { "version": "0.14.2", "update_link": "https://github.com/svideria/zotero-smart-read-aloud/releases/download/v0.14.2/SmartReadAloud-0.14.2.xpi", "applications": { "zotero": { "strict_min_version": "6.999" } } }
       ]
     }
   }

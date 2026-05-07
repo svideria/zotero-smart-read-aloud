@@ -96,3 +96,119 @@ RDKit       R D Kit
 ADMET       AD-met
 PAINS       pains
 SMILES      smiles
+
+# ─── BIOLOGY ────────────────────────────────────────────────────────
+
+# Nucleic acids and central dogma
+DNA         D N A
+RNA         R N A
+mRNA        m R N A
+miRNA       micro R N A
+siRNA       s i R N A
+shRNA       short hairpin R N A
+tRNA        t R N A
+rRNA        r R N A
+cDNA        complementary D N A
+ncRNA       non-coding R N A
+sgRNA       single guide R N A
+gRNA        guide R N A
+ncRNA       non-coding R N A
+
+# Common gene names (notoriously mispronounced)
+TP53        T P fifty three
+BRCA1       B R C A one
+BRCA2       B R C A two
+EGFR        E G F R
+KRAS        K-rass
+HRAS        H-rass
+NRAS        N-rass
+MYC         mick
+HER2        her two
+mTOR        em tor
+PI3K        P I three K
+PTEN        P-ten
+APC         A P C
+RB1         R B one
+TGFB        T G F beta
+
+# Proteins / enzymes
+CYP3A4      C Y P three A four
+CYP450      C Y P four fifty
+P450        P four fifty
+GAPDH       G A P D H
+GFP         G F P
+RFP         R F P
+YFP         Y F P
+BSA         B S A
+PEG         peg
+HSA         H S A
+
+# Cell lines
+HEK293      H E K two ninety three
+HEK         H E K
+HeLa        hee-lah
+MCF-7       M C F seven
+MCF7        M C F seven
+U2OS        U two O S
+A549        A five forty nine
+THP-1       T H P one
+Jurkat      jur-kat
+CHO         C H O
+
+# Techniques and assays
+PCR         P C R
+qPCR        quantitative P C R
+RT-PCR      reverse transcription P C R
+ELISA       e-lie-zah
+FACS        facs
+FISH        fish
+ChIP        chip
+ChIP-seq    chip seq
+RNA-seq     R N A seq
+scRNA-seq   single cell R N A seq
+ATAC-seq    A T A C seq
+SDS-PAGE    S D S page
+WB          western blot
+IHC         I H C
+IP          I P
+
+# Receptors and pathways
+GPCR        G P C R
+RTK         R T K
+TKI         T K I
+TGF         T G F
+IL-6        I L six
+IL-2        I L two
+TNF         T N F
+NF-κB       N F kappa B
+NFkB        N F kappa B
+JAK-STAT    jack stat
+MAPK        M A P K
+ERK         erk
+PKA         P K A
+PKC         P K C
+CDK         C D K
+
+# Drug development / regulatory
+ADC         A D C
+ADCC        A D C C
+PROTAC      pro-tack
+IND         I N D
+NDA         N D A
+FDA         F D A
+EMA         E M A
+GLP         G L P
+GMP         G M P
+ADME        ADD-me
+
+# Microbiology
+E. coli     E coli
+S. aureus   S aureus
+B. subtilis B subtilis
+P. aeruginosa P aeruginosa
+
+# Structural biology
+NMR         N M R
+EM          electron microscopy
+cryo-EM     cryo E M
+X-ray       X ray
