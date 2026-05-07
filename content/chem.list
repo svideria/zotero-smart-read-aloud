@@ -1,0 +1,98 @@
+# espeak-ng dictionary source for chemistry/biology pronunciation
+#
+# Format: each non-comment line is a `.replace` directive that rewrites
+# the source token to a TTS-friendly form, which espeak-ng then phonemizes
+# normally.
+#
+# This file is the source-of-truth for plugin v0.14.1+. Future updates will:
+#   1. Compile this with `espeak-ng --compile=en` into a binary .dict
+#   2. Drop the compiled file alongside Piper's bundled espeak-ng-data
+#   3. Have Piper pick up the additional rules at synth time
+#
+# Until the compile/install flow is wired up, the regex + AI passes in
+# reader.js handle this client-side. New terms added here should also be
+# considered for the regex table in chemPreprocess() until espeak takes over.
+
+.replace
+# Chiral / stereo descriptors
+d.r.        d r
+d.r         d r
+e.e.        e e
+e.e         e e
+e.r.        e r
+e.r         e r
+
+# Bioassay / pharmacology
+IC50        I C fifty
+EC50        E C fifty
+LD50        L D fifty
+GI50        G I fifty
+TC50        T C fifty
+pKa         p K a
+pKi         p K i
+Km          K m
+Ki          K i
+kcat        k cat
+Vmax        V max
+Hill        Hill
+
+# Spectroscopy / instruments
+NMR         N M R
+1H          proton
+13C         carbon thirteen
+HSQC        H S Q C
+HMBC        H M B C
+NOESY       no-zee
+COSY        co-zee
+HPLC        H P L C
+UPLC        U P L C
+LCMS        L C M S
+GCMS        G C M S
+MALDI       MAL-dee
+ESI         E S I
+TOF         T O F
+DFT         D F T
+SAR         S A R
+
+# Common chemical formulas (single elements + digit)
+H2O         water
+CO2         C O two
+NaCl        sodium chloride
+HCl         H C l
+H2SO4       H two S O four
+HNO3        H N O three
+NaOH        sodium hydroxide
+KOH         K O H
+NH3         N H three
+NH4         N H four
+NaH         sodium hydride
+
+# Transition metal halides (representative)
+NiCl3       Ni C l three
+NiCl2       Ni C l two
+PdCl2       palladium chloride
+CuCl        copper chloride
+FeCl3       iron three chloride
+ZnCl2       zinc chloride
+
+# Solvents
+DMSO        D M S O
+DMF         D M F
+THF         T H F
+DCM         D C M
+MeOH        methanol
+EtOH        ethanol
+iPrOH       I P A
+tBuOH       tert-butanol
+
+# Miscellaneous abbreviations
+mol%        mole percent
+v/v         volume per volume
+w/w         weight per weight
+w/v         weight per volume
+DOI         D O I
+PDB         P D B
+RDKit       R D Kit
+ADMET       AD-met
+PAINS       pains
+SMILES      smiles
