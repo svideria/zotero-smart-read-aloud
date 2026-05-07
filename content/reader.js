@@ -156,7 +156,7 @@ var ZRA = {
 
     this.setStatus("Downloading pdftotext (xpdf-tools, ~10 MB, one-time)…");
     const zipPath = PathUtils.join(dir, "xpdf-tools.zip");
-    const url = "https://dl.xpdfreader.com/xpdf-tools-win-4.05.zip";
+    const url = "https://dl.xpdfreader.com/xpdf-tools-win-4.06.zip";
     const r = await fetch(url);
     if (!r.ok) throw new Error("xpdf download HTTP " + r.status);
     await IOUtils.write(zipPath, new Uint8Array(await r.arrayBuffer()));
