@@ -90,8 +90,24 @@ var ZRA = {
       if (!ok) { this.setStatus("Piper not installed.", "warn"); return; }
       try { await this.installPiper(); }
       catch (e) { this.setStatus("Install failed: " + (e.message || e), "warn"); return; }
+    } else {
+      // Piper already installed — ensure chem-augmented en_dict is in place
+      try { await this.ensureChemDict(); } catch (e) { Zotero.debug("[ZRA] chem dict ensure: " + e); }
     }
     await this.loadPiperVoices();
+  },
+
+  async ensureChemDict() {
+    const dictDest = PathUtils.join(this.piperRoot, "piper", "espeak-ng-data", "en_dict");
+    if (!(await IOUtils.exists(dictDest))) return;
+    const stat = await IOUtils.stat(dictDest);
+    // Our augmented dict is ~169761 bytes; stock is ~166944. Skip if size matches ours.
+    if (stat && stat.size && Math.abs(stat.size - 169761) < 1000) return;
+    const resp = await fetch("chrome://smart-read-aloud/content/en_dict.chem");
+    if (!resp.ok) return;
+    const buf = new Uint8Array(await resp.arrayBuffer());
+    await IOUtils.write(dictDest, buf);
+    Zotero.debug("[ZRA] installed chem-augmented en_dict (" + buf.length + " bytes)");
   },
 
   async runPS(args) {
@@ -133,6 +149,18 @@ var ZRA = {
     if (ex.exitCode !== 0) throw new Error("Extract: " + (ex.stderr || ("exit " + ex.exitCode)));
     try { await IOUtils.remove(zipPath); } catch (e) {}
     if (!(await IOUtils.exists(this.piperExe))) throw new Error("piper.exe missing after extract");
+
+    // Drop in our chemistry-augmented en_dict, replacing the stock one
+    try {
+      const dictDest = PathUtils.join(this.piperRoot, "piper", "espeak-ng-data", "en_dict");
+      if (await IOUtils.exists(dictDest)) {
+        const resp = await fetch("chrome://smart-read-aloud/content/en_dict.chem");
+        if (resp.ok) {
+          const buf = new Uint8Array(await resp.arrayBuffer());
+          await IOUtils.write(dictDest, buf);
+        }
+      }
+    } catch (e) { Zotero.debug("[ZRA] chem dict install: " + e); }
 
     this.setStatus("Downloading default voice (Lessac high, ~110 MB)…");
     const base = "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/high";
