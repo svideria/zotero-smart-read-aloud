@@ -146,6 +146,72 @@ var ZRA = {
     this.setStatus("Piper installed.");
   },
 
+  async ensurePdftotext() {
+    if (this._pdftotextPath) return this._pdftotextPath;
+    const Z = this.Zotero;
+    const dir = PathUtils.join(Z.DataDirectory.dir, "pdftools");
+    await IOUtils.makeDirectory(dir, { ignoreExisting: true });
+    const exePath = PathUtils.join(dir, "pdftotext.exe");
+    if (await IOUtils.exists(exePath)) { this._pdftotextPath = exePath; return exePath; }
+
+    this.setStatus("Downloading pdftotext (xpdf-tools, ~10 MB, one-time)…");
+    const zipPath = PathUtils.join(dir, "xpdf-tools.zip");
+    const url = "https://dl.xpdfreader.com/xpdf-tools-win-4.05.zip";
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("xpdf download HTTP " + r.status);
+    await IOUtils.write(zipPath, new Uint8Array(await r.arrayBuffer()));
+
+    this.setStatus("Extracting xpdf-tools…");
+    const ex = await this.runPS([
+      "-NoProfile", "-Command",
+      "Expand-Archive -Path '" + zipPath + "' -DestinationPath '" + dir + "' -Force"
+    ]);
+    if (ex.exitCode !== 0) throw new Error("Extract: " + (ex.stderr || ("exit " + ex.exitCode)));
+
+    const found = await this.findFileRecursive(dir, "pdftotext.exe");
+    if (!found) throw new Error("pdftotext.exe not found in archive");
+    if (found !== exePath) {
+      await IOUtils.copy(found, exePath);
+    }
+    try { await IOUtils.remove(zipPath); } catch (e) {}
+    this._pdftotextPath = exePath;
+    return exePath;
+  },
+
+  async findFileRecursive(dir, name) {
+    const queue = [dir];
+    const target = name.toLowerCase();
+    while (queue.length) {
+      const cur = queue.shift();
+      let children;
+      try { children = await IOUtils.getChildren(cur); } catch (e) { continue; }
+      for (const c of children) {
+        let stat;
+        try { stat = await IOUtils.stat(c); } catch (e) { continue; }
+        if (stat && stat.type === "directory") queue.push(c);
+        else if (PathUtils.filename(c).toLowerCase() === target) return c;
+      }
+    }
+    return null;
+  },
+
+  async extractPdfText(pdfPath) {
+    const exe = await this.ensurePdftotext();
+    const { Subprocess } = ChromeUtils.importESModule("resource://gre/modules/Subprocess.sys.mjs");
+    const proc = await Subprocess.call({
+      command: exe,
+      arguments: ["-q", pdfPath, "-"],
+      stdout: "pipe", stderr: "pipe"
+    });
+    let stdout = "", stderr = "";
+    const r1 = (async () => { let s; while ((s = await proc.stdout.readString()) !== "") stdout += s; })();
+    const r2 = (async () => { let s; while ((s = await proc.stderr.readString()) !== "") stderr += s; })();
+    const { exitCode } = await proc.wait();
+    await Promise.all([r1, r2]);
+    if (exitCode !== 0) throw new Error("pdftotext exit " + exitCode + ": " + stderr.slice(0, 200));
+    return stdout;
+  },
+
   async loadPiperVoices() {
     if (!(await IOUtils.exists(this.piperVoicesDir))) {
       await IOUtils.makeDirectory(this.piperVoicesDir, { ignoreExisting: true });
@@ -201,23 +267,12 @@ var ZRA = {
           const t = await IOUtils.readUTF8(cachePath);
           if (t && t.length > 100) { text = t; break; }
         }
-        // On-demand indexing if cache missing
+        // Direct extraction via bundled pdftotext (bypasses Zotero indexer queue)
         try {
-          if (Z.FullText && Z.FullText.indexItems) {
-            this.setStatus("Indexing PDF on demand: " + (item.getField("title") || "").slice(0, 60) + "…");
-            await Z.FullText.indexItems([aid]);
-            // indexItems may return before extraction finishes; poll up to 60s
-            for (let s = 0; s < 60; s++) {
-              if (await IOUtils.exists(cachePath)) {
-                const t2 = await IOUtils.readUTF8(cachePath);
-                if (t2 && t2.length > 100) { text = t2; break; }
-              }
-              await new Promise((r) => setTimeout(r, 1000));
-              if (s % 5 === 4) this.setStatus("Indexing PDF (" + (s + 1) + "s)…");
-            }
-            if (text) break;
-          }
-        } catch (e) { Z.debug("[ZRA] on-demand index failed for " + aid + ": " + e); }
+          this.setStatus("Extracting PDF directly: " + (item.getField("title") || "").slice(0, 60) + "…");
+          const t3 = await this.extractPdfText(fp);
+          if (t3 && t3.length > 100) { text = t3; break; }
+        } catch (e) { Z.debug("[ZRA] direct extract failed for " + aid + ": " + e); }
       }
       if (!text) continue;
 
