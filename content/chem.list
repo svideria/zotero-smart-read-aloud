@@ -4,14 +4,31 @@
 # the source token to a TTS-friendly form, which espeak-ng then phonemizes
 # normally.
 #
-# This file is the source-of-truth for plugin v0.14.1+. Future updates will:
-#   1. Compile this with `espeak-ng --compile=en` into a binary .dict
-#   2. Drop the compiled file alongside Piper's bundled espeak-ng-data
-#   3. Have Piper pick up the additional rules at synth time
+# This file is the source-of-truth for plugin v0.14.1+. Until compiled and
+# wired into Piper, the regex + AI passes in reader.js handle expansion
+# client-side. New terms added here should also be considered for the regex
+# table in chemPreprocess() until espeak takes over.
 #
-# Until the compile/install flow is wired up, the regex + AI passes in
-# reader.js handle this client-side. New terms added here should also be
-# considered for the regex table in chemPreprocess() until espeak takes over.
+# ─── ESPEAK-NG COMPILER (step 2 findings, plugin v0.14.3) ─────────────
+#
+# Latest release: 1.52.0  (https://github.com/espeak-ng/espeak-ng)
+# Windows asset: espeak-ng.msi
+#   https://github.com/espeak-ng/espeak-ng/releases/download/1.52.0/espeak-ng.msi
+#
+# Caveat: only an MSI installer is shipped, no portable zip. Two paths:
+#   (a) Run installer once on dev machine, then `espeak-ng --compile=en`
+#       inside a dir containing the upstream en `dictsource/` files plus
+#       this chem.list appended. Output: en_dict (binary).
+#   (b) For per-user plugin install: extract MSI with `msiexec /a … /qb
+#       TARGETDIR=…` to get the espeak-ng binaries portably, OR use
+#       lessmsi/7-zip to extract.
+#
+# Recommended approach for the plugin: precompile a supplemental dict on a
+# dev machine, bake the resulting binary into the XPI, copy it into Piper's
+# espeak-ng-data dir at install time. No runtime compilation needed.
+#
+# Upstream en dictsource (needed alongside chem.list during compile):
+#   https://github.com/espeak-ng/espeak-ng/tree/master/dictsource
 
 .replace
 # Chiral / stereo descriptors
