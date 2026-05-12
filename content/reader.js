@@ -596,6 +596,10 @@ var ZRA = {
 
   filterText(rawText) {
     let t = rawText.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    // Strip Unicode geometric-shape / box / bullet characters — TTS reads these as
+    // "black square", "white circle", etc. Range covers Block Elements (U+2580–259F)
+    // and Geometric Shapes (U+25A0–25FF), plus common bullets.
+    t = t.replace(/[▀-◿•‣⁃⁌⁍·]/g, " ");
     if (document.getElementById("zra-skip-refs").checked) {
       // Truncate at the earliest "post-body" section header (references, acknowledgments, author info, funding, etc.)
       const headers = [
@@ -702,6 +706,12 @@ var ZRA = {
       t = t.replace(/([a-z\)\]])(\d{1,3}(?:[,−–\-]\d{1,3}){0,5})(?=[\s.,;:!?\)\]]|$)/g, "$1");
       // Also strip standalone " 1,2,3 " or " 1−4 " (rare but possible)
       t = t.replace(/\s\d{1,3}(?:[,−–\-]\d{1,3}){1,5}(?=[\s.,;:!?\)\]])/g, " ");
+      // Stranded citation superscripts that PDF extraction stripped to baseline:
+      // ". 1 This trend…", ". 3–5 Careful selection…", "\n\n7 In their study…"
+      t = t.replace(/([.!?])[ \t]+\d{1,3}(?:[,−–\-]\d{1,3}){0,5}[ \t]+(?=[A-Z])/g, "$1 ");
+      t = t.replace(/(\n\n)[ \t]*\d{1,3}(?:[,−–\-]\d{1,3}){0,5}[ \t]+(?=[A-Z])/g, "$1");
+      // Collapse the gap left behind
+      t = t.replace(/[ \t]{2,}/g, " ");
     }
 
     // Strict body-only pass: drop paragraphs/sentences that look like tables,

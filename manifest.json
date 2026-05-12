@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Smart Read Aloud",
-  "version": "0.15.2",
+  "version": "0.15.3",
   "description": "Read scientific papers aloud, skipping DOIs, references, captions, and other clutter.",
   "author": "Sebastian Whipple",
   "applications": {
