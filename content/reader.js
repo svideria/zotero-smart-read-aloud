@@ -685,8 +685,15 @@ var ZRA = {
       t = t.replace(/\b(Received|Revised|Accepted|Submitted|Published(\s+online)?|Available\s+online)\s*:?\s*[A-Z][a-z]+\.?\s+\d+,?\s+\d{4}/g, "");
       t = t.replace(/©\s*(\d{4}|XXXX)[^\n]*/g, "");
       t = t.replace(/This article is licensed under[^\n.]*\.?/g, "");
-      t = t.replace(/Downloaded via [\d.]+ on [^\n]*\(UTC\)\.?/g, "");
-      t = t.replace(/See\s+for [^.\n]*share[^.\n]*\.?/g, "");
+      // ACS / publisher download-metadata lines (institution names, IPs, UTC stamps)
+      t = t.replace(/Downloaded\s+(?:via|by|from)\s+[^\n]*?\(UTC\)\.?/gi, "");
+      t = t.replace(/Downloaded\s+(?:via|by|from)\s+[^\n]*?\b\d{1,2}:\d{2}(?::\d{2})?\b[^\n]*/gi, "");
+      t = t.replace(/Downloaded\s+(?:via|by|from)\s+[^\n.]{0,160}?\b(?:on|at)\s+[A-Z][a-z]+\.?\s+\d{1,2},?\s+\d{4}[^\n]*/gi, "");
+      t = t.replace(/See\s+(?:https?:\/\/\S+\s+)?for\s+options?\s+on\s+how\s+to\s+legitimately\s+share[^\n.]*\.?/gi, "");
+      t = t.replace(/^[^\n]*\(UTC\)\.?[^\n]*$/gm, "");
+      // Publisher article-header crumbs: "pubs.acs.org/JACS", "Letter pubs.acs.org/OrgLett"
+      t = t.replace(/\bpubs\.[a-z]+\.[a-z]{2,4}\/\S+/gi, "");
+      t = t.replace(/^\s*(Article|Letter|Communication|Perspective|Review|Editorial)\s*$/gm, "");
       t = t.replace(/Published by [A-Z][^\n.]*Society[^\n.]*\.?/g, "");
       t = t.replace(/\bAll rights reserved\.?/gi, "");
       t = t.replace(/[A-Z]\.\s*[A-Z][a-z]+\.\s*[A-Z][a-z]+\.\s*[A-Z][a-z]+\.\s*(XXXX|\d{4})[^\n]*/g, "");
