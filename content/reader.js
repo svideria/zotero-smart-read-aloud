@@ -416,9 +416,11 @@ var ZRA = {
   rebuildCombined() {
     const useSum = document.getElementById("zra-ai-summary").checked;
     const useLab = document.getElementById("zra-lab-brief").checked;
+    const skipAuth = document.getElementById("zra-skip-authors") && document.getElementById("zra-skip-authors").checked;
     const blocks = this.papers.map((p, i) => {
       const isLast = (i === this.papers.length - 1);
-      const intro = (this.papers.length > 1 ? ("Paper " + (i + 1) + " of " + this.papers.length + ": " + p.title + (p.meta ? ", " + p.meta : "") + ".\n\n") : "");
+      const introMeta = skipAuth ? "" : (p.meta ? ", " + p.meta : "");
+      const intro = (this.papers.length > 1 ? ("Paper " + (i + 1) + " of " + this.papers.length + ": " + p.title + introMeta + ".\n\n") : "");
       const labLine = (useLab && p.labBrief) ? ("About the lab. " + p.labBrief + "\n\n") : "";
       let body;
       if (p.skim && p.summary) {
@@ -613,7 +615,21 @@ var ZRA = {
         "Competing Interests", "COMPETING INTERESTS",
         "Data Availability", "DATA AVAILABILITY",
         "Accession Codes", "ACCESSION CODES",
-        "Author Information", "AUTHOR INFORMATION"
+        "Author Information", "AUTHOR INFORMATION",
+        "EXPERIMENTAL SECTION", "Experimental Section", "Experimental section",
+        "EXPERIMENTAL PROCEDURES", "Experimental Procedures",
+        "Experimental Details", "EXPERIMENTAL DETAILS",
+        "General Procedure", "GENERAL PROCEDURE",
+        "General Information", "GENERAL INFORMATION",
+        "Materials and Methods", "MATERIALS AND METHODS",
+        "Supporting Information", "SUPPORTING INFORMATION",
+        "Supplementary Information", "SUPPLEMENTARY INFORMATION",
+        "Supplementary Material", "Supplementary Materials",
+        "SUPPLEMENTARY MATERIAL", "SUPPLEMENTARY MATERIALS",
+        "Supplementary Data", "SUPPLEMENTARY DATA",
+        "Synthesis and Characterization", "Synthesis and characterization",
+        "Characterization Data", "CHARACTERIZATION DATA",
+        "Crystallographic Data", "CRYSTALLOGRAPHIC DATA"
       ];
       let earliest = -1;
       for (const h of headers) {
@@ -688,11 +704,105 @@ var ZRA = {
       t = t.replace(/\s\d{1,3}(?:[,−–\-]\d{1,3}){1,5}(?=[\s.,;:!?\)\]])/g, " ");
     }
 
+    // Strict body-only pass: drop paragraphs/sentences that look like tables,
+    // crystallographic data, formula dumps, IUPAC name walls, or author/affiliation
+    // blocks. Aggressive by design — we'd rather lose a sentence than read garbage.
+    t = this.stripNonProse(t);
+
     // Chemistry pronunciation pass (regex)
     if (document.getElementById("zra-chem-aware") && document.getElementById("zra-chem-aware").checked) {
       t = this.chemPreprocess(t);
     }
     return t;
+  },
+
+  stripNonProse(t) {
+    const paras = t.split(/\n\n+/);
+    const kept = [];
+    for (const para of paras) {
+      const p = para.trim();
+      if (!p) continue;
+      if (this.looksLikeNonProse(p)) continue;
+      // Per-sentence filter inside the paragraph
+      const sentences = p.split(/(?<=[.!?])\s+(?=[A-Z(\[])/);
+      const good = sentences.filter((s) => !this.sentenceLooksLikeNonProse(s));
+      const merged = good.join(" ").replace(/\s{2,}/g, " ").trim();
+      if (merged.length >= 40) kept.push(merged);
+    }
+    return kept.join("\n\n");
+  },
+
+  looksLikeNonProse(para) {
+    const text = para.trim();
+    const nonWs = text.replace(/\s/g, "");
+    if (nonWs.length < 30) return true;
+    const len = nonWs.length;
+    const letters = (nonWs.match(/[A-Za-z]/g) || []).length;
+    const digits = (nonWs.match(/[0-9]/g) || []).length;
+    const symbols = (nonWs.match(/[()\[\]{}\\\/=+<>|*~%@#&]/g) || []).length;
+    const tokens = text.split(/\s+/).filter(Boolean);
+    const stripWord = (w) => w.replace(/[^A-Za-z0-9]/g, "");
+    // High-confidence specific signals — any one triggers
+    // 1. Repeated crystallographic bonds
+    if ((text.match(/[A-Z][a-z]?\d+\s*[-–—]\s*[A-Z][a-z]?\d+/g) || []).length >= 2) return true;
+    // 2. Repeated "1.234(5)" style values (bond lengths/angles with errors)
+    if ((text.match(/\d+\.\d+\s*\(\d+\)/g) || []).length >= 2) return true;
+    // 3. Sentence with a long IUPAC-name-style token glued together
+    for (const w of tokens) {
+      const clean = w.replace(/[,;:.]+$/, "");
+      if (clean.length >= 28 && /[\(\[]/.test(clean) && /\d/.test(clean) && /[-–—]/.test(clean)) return true;
+    }
+    // 4. Density of chemical-formula tokens (e.g. H2O, NaCl3, FP6, BF3)
+    if (tokens.length >= 5) {
+      const chemToks = tokens.filter((w) => {
+        const c = stripWord(w);
+        if (!/\d/.test(c)) return false;
+        return /^([A-Z][a-z]?\d*)+$/.test(c);
+      }).length;
+      if (chemToks >= 3 && chemToks / tokens.length > 0.18) return true;
+    }
+    // 5. Hard letter-ratio floor (mostly non-letter content)
+    if (letters / len < 0.55) return true;
+    // Soft statistical signals — require ≥ 2 to trigger
+    let soft = 0;
+    if (letters / len < 0.66) soft++;
+    if (digits / len > 0.14) soft++;
+    if (symbols / len > 0.06) soft++;
+    if (tokens.length >= 6) {
+      const numericToks = tokens.filter((w) => /\d/.test(w) && /^[\d().,\-–+%/]+$/.test(w)).length;
+      if (numericToks / tokens.length > 0.20) soft++;
+      // Short tokens that contain a digit — "1", "2a", "C3", "78" — distinguishes
+      // data dumps from English prose that happens to use short function words.
+      const shortNumToks = tokens.filter((w) => {
+        const c = stripWord(w);
+        return c.length > 0 && c.length <= 2 && /\d/.test(c);
+      }).length;
+      if (shortNumToks / tokens.length > 0.30) soft++;
+    }
+    if (soft >= 2) return true;
+    // 6. Affiliation/author block: many commas, no sentence terminators
+    if (tokens.length >= 10 && !/[.!?]\s/.test(text)) {
+      const commas = (text.match(/,/g) || []).length;
+      if (commas / tokens.length > 0.22) return true;
+    }
+    return false;
+  },
+
+  sentenceLooksLikeNonProse(s) {
+    const text = s.trim();
+    if (text.length < 30) return false;
+    const nonWs = text.replace(/\s/g, "");
+    if (!nonWs.length) return true;
+    const digits = (nonWs.match(/[0-9]/g) || []).length;
+    if (digits / nonWs.length > 0.18) return true;
+    // Any one giant IUPAC-like token (long, with brackets, digits, and dashes glued together)
+    const tokens = text.split(/\s+/);
+    for (const w of tokens) {
+      if (w.length >= 26 && /[\(\[]/.test(w) && /\d/.test(w) && /[-–—]/.test(w)) return true;
+    }
+    // Repeated atom-label tokens inside a sentence
+    if ((text.match(/\b[A-Z][a-z]?\d+\b/g) || []).length >= 5) return true;
+    return false;
   },
 
   applyFiltersAllPostProcess(p) {
